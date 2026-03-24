@@ -4,6 +4,7 @@ TypeScript + Express translation service with:
 
 - DeepL translation endpoints
 - AWS Translate endpoints
+- Azure Translator endpoints
 
 **Setup**
 
@@ -26,12 +27,16 @@ DEEPL_API_KEY=your_deepl_api_key_here
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your_access_key
 AWS_SECRET_ACCESS_KEY=your_secret_key
+AZURE_TRANSLATOR_ENDPOINT=https://your-resource-name.cognitiveservices.azure.com
+AZURE_TRANSLATOR_KEY=your_azure_translator_key
+AZURE_TRANSLATOR_REGION=your_azure_region
 ```
 
 Notes:
 
 - `DEEPL_API_KEY` is required for DeepL endpoints.
 - AWS variables are required only for AWS Translate endpoints.
+- Azure variables are required only for Azure Translator endpoints.
 
 **Run**
 
@@ -74,6 +79,12 @@ By default the server runs on `http://localhost:3000`.
 
 - `GET /aws/languages`
   Returns supported AWS Translate languages.
+
+- `POST /translate/azure`
+  Translates text or object values using Azure Translator.
+
+- `GET /azure/languages`
+  Returns supported Azure Translator languages.
 
 **Test DeepL**
 
@@ -164,6 +175,39 @@ Example object response:
 }
 ```
 
+**Test Azure Translator**
+
+List Azure languages:
+
+```bash
+curl http://localhost:3000/azure/languages
+```
+
+Translate a plain string with Azure:
+
+```bash
+curl -X POST http://localhost:3000/translate/azure \
+  -H "Content-Type: application/json" \
+  -d '{
+    "languageCode": "fr",
+    "text": "Hello world"
+  }'
+```
+
+Translate object values with Azure:
+
+```bash
+curl -X POST http://localhost:3000/translate/azure \
+  -H "Content-Type: application/json" \
+  -d '{
+    "languageCode": "es",
+    "data": {
+      "title": "Welcome",
+      "description": "This is a sample translation"
+    }
+  }'
+```
+
 **Common Errors**
 
 - DeepL not configured:
@@ -171,6 +215,9 @@ Example object response:
 
 - AWS not configured:
   Set `AWS_REGION`, `AWS_ACCESS_KEY_ID`, and `AWS_SECRET_ACCESS_KEY`.
+
+- Azure not configured:
+  Set `AZURE_TRANSLATOR_ENDPOINT`, `AZURE_TRANSLATOR_KEY`, and `AZURE_TRANSLATOR_REGION`.
 
 - `400` bad request:
   Check that `languageCode` is present and that you sent `text` or `data` depending on the endpoint.

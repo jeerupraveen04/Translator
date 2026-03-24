@@ -7,6 +7,7 @@ import {
 } from "../utils/translator";
 import type { SupportedLanguage } from "../types/translation";
 import { getAwsSupportedLanguages } from "../utils/awsTranslate";
+import { getAzureSupportedLanguages } from "../utils/azureTranslate";
 
 export async function loadSupportedLanguages(): Promise<SupportedLanguage[]> {
   const translator = getTranslator();
@@ -47,6 +48,17 @@ export async function initSupportedLanguages(): Promise<void> {
       }
     } catch (err) {
       console.error("Failed to list AWS Translate languages at startup:", err);
+    }
+
+    try {
+      const azureLangs = await getAzureSupportedLanguages();
+      if (azureLangs.length > 0) {
+        console.log(`Loaded ${azureLangs.length} supported Azure Translator languages at startup.`);
+      } else {
+        console.log("No Azure Translator languages available or Azure client not configured");
+      }
+    } catch (err) {
+      console.error("Failed to list Azure Translator languages at startup:", err);
     }
   } catch (error) {
     console.error("Failed to initialize DeepL supported languages:", error);

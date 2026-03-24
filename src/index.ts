@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import translateRouter from "./routes/translate";
 import awsTranslateRouter from "./routes/awsTranslate";
 import azureTranslateRouter from "./routes/azureTranslate";
+import geminiTranslateRouter from "./routes/geminiTranslate";
 import usageRouter from "./routes/usage";
 import { initSupportedLanguages } from "./processor/translationProcessor";
 
@@ -18,6 +19,7 @@ app.get("/", (_req, res) => res.send("deepltranslator TypeScript server is runni
 app.use(translateRouter);
 app.use(awsTranslateRouter);
 app.use(azureTranslateRouter);
+app.use(geminiTranslateRouter);
 app.use(usageRouter);
 
 // initialize supported languages then start server

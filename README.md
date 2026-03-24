@@ -5,6 +5,7 @@ TypeScript + Express translation service with:
 - DeepL translation endpoints
 - AWS Translate endpoints
 - Azure Translator endpoints
+- Gemini translation endpoint
 
 **Setup**
 
@@ -30,6 +31,8 @@ AWS_SECRET_ACCESS_KEY=your_secret_key
 AZURE_TRANSLATOR_ENDPOINT=https://your-resource-name.cognitiveservices.azure.com
 AZURE_TRANSLATOR_KEY=your_azure_translator_key
 AZURE_TRANSLATOR_REGION=your_azure_region
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
 Notes:
@@ -37,6 +40,7 @@ Notes:
 - `DEEPL_API_KEY` is required for DeepL endpoints.
 - AWS variables are required only for AWS Translate endpoints.
 - Azure variables are required only for Azure Translator endpoints.
+- Gemini variables are required only for the Gemini endpoint.
 
 **Run**
 
@@ -85,6 +89,9 @@ By default the server runs on `http://localhost:3000`.
 
 - `GET /azure/languages`
   Returns supported Azure Translator languages.
+
+- `POST /translate/gemini`
+  Translates text or object values using Gemini.
 
 **Test DeepL**
 
@@ -208,6 +215,33 @@ curl -X POST http://localhost:3000/translate/azure \
   }'
 ```
 
+**Test Gemini**
+
+Translate a plain string with Gemini:
+
+```bash
+curl -X POST http://localhost:3000/translate/gemini \
+  -H "Content-Type: application/json" \
+  -d '{
+    "languageCode": "fr",
+    "text": "Hello world"
+  }'
+```
+
+Translate object values with Gemini:
+
+```bash
+curl -X POST http://localhost:3000/translate/gemini \
+  -H "Content-Type: application/json" \
+  -d '{
+    "languageCode": "es",
+    "data": {
+      "title": "Welcome",
+      "description": "This is a sample translation"
+    }
+  }'
+```
+
 **Common Errors**
 
 - DeepL not configured:
@@ -218,6 +252,9 @@ curl -X POST http://localhost:3000/translate/azure \
 
 - Azure not configured:
   Set `AZURE_TRANSLATOR_ENDPOINT`, `AZURE_TRANSLATOR_KEY`, and `AZURE_TRANSLATOR_REGION`.
+
+- Gemini not configured:
+  Set `GEMINI_API_KEY`. Optionally set `GEMINI_MODEL`.
 
 - `400` bad request:
   Check that `languageCode` is present and that you sent `text` or `data` depending on the endpoint.

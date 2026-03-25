@@ -6,6 +6,7 @@ TypeScript + Express translation service with:
 - AWS Translate endpoints
 - Azure Translator endpoints
 - Gemini translation endpoint
+- Bulk translation endpoint with provider fallback and retries
 
 **Setup**
 
@@ -33,6 +34,7 @@ AZURE_TRANSLATOR_KEY=your_azure_translator_key
 AZURE_TRANSLATOR_REGION=your_azure_region
 GEMINI_API_KEY=your_gemini_api_key
 GEMINI_MODEL=gemini-2.5-flash
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/your/webhook/url
 ```
 
 Notes:
@@ -41,6 +43,9 @@ Notes:
 - AWS variables are required only for AWS Translate endpoints.
 - Azure variables are required only for Azure Translator endpoints.
 - Gemini variables are required only for the Gemini endpoint.
+- `SLACK_WEBHOOK_URL` enables start/missed/insert/completion/failure notifications for bulk jobs.
+
+Configured target languages for the bulk route are defined in [languages.ts](/d:/PersonalProject/Translator/src/utils/languages.ts).
 
 **Run**
 
@@ -92,6 +97,9 @@ By default the server runs on `http://localhost:3000`.
 
 - `POST /translate/gemini`
   Translates text or object values using Gemini.
+
+- `POST /translations/bulk`
+  Translates an array of source strings into one or more target languages using retries and provider fallback.
 
 **Test DeepL**
 
@@ -228,6 +236,46 @@ curl -X POST http://localhost:3000/translate/gemini \
   }'
 ```
 
+**Test Bulk Translation**
+
+Translate into one specific language:
+
+```bash
+curl -X POST http://localhost:3000/translations/bulk \
+  -H "Content-Type: application/json" \
+  -d '{
+    "languageCode": "hi",
+    "strings": [
+      { "key": "welcome", "string": "Welcome" },
+      { "key": "logout", "string": "Logout" }
+    ]
+  }'
+```
+
+Translate into all configured languages from [languages.ts](/d:/PersonalProject/Translator/src/utils/languages.ts):
+
+```bash
+curl -X POST http://localhost:3000/translations/bulk \
+  -H "Content-Type: application/json" \
+  -d '{
+    "strings": [
+      { "key": "welcome", "string": "Welcome" },
+      { "key": "logout", "string": "Logout" }
+    ]
+  }'
+```
+
+Example response:
+
+```json
+{
+  "hi": {
+    "welcome": "स्वागत है",
+    "logout": "लॉग आउट"
+  }
+}
+```
+
 Translate object values with Gemini:
 
 ```bash
@@ -258,3 +306,6 @@ curl -X POST http://localhost:3000/translate/gemini \
 
 - `400` bad request:
   Check that `languageCode` is present and that you sent `text` or `data` depending on the endpoint.
+
+- Bulk route has no target languages:
+  Provide `languageCode` in the request or add languages in [languages.ts](/d:/PersonalProject/Translator/src/utils/languages.ts).

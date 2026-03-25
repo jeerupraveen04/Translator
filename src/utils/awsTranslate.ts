@@ -4,6 +4,7 @@ import {
   ListLanguagesCommand,
 } from "@aws-sdk/client-translate";
 let clientInstance: TranslateClient | null | undefined;
+let cachedSupportedLanguages: string[] | null = null;
 
 function getAwsClient(): TranslateClient | null {
   if (clientInstance !== undefined) {
@@ -85,9 +86,15 @@ export async function getAwsSupportedLanguages(): Promise<string[]> {
     return [];
   }
 
+  if (cachedSupportedLanguages) {
+    return cachedSupportedLanguages;
+  }
+
   const cmd = new ListLanguagesCommand({ DisplayLanguageCode: "en" });
   const resp = await client.send(cmd);
-  return (resp.Languages ?? [])
+  cachedSupportedLanguages = (resp.Languages ?? [])
     .map((language) => language.LanguageCode)
     .filter((languageCode): languageCode is string => Boolean(languageCode));
+
+  return cachedSupportedLanguages;
 }

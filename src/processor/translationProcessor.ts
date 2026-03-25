@@ -8,20 +8,10 @@ import {
 import type { SupportedLanguage } from "../types/translation";
 import { getAwsSupportedLanguages } from "../utils/awsTranslate";
 import { getAzureSupportedLanguages } from "../utils/azureTranslate";
+import { getDeepLSupportedLanguages } from "../utils/deeplTranslate";
 
 export async function loadSupportedLanguages(): Promise<SupportedLanguage[]> {
-  const translator = getTranslator();
-
-  if (!translator) {
-    return [];
-  }
-
-  const languages = await translator.getTargetLanguages();
-  const formattedLanguages = formatSupportedLanguages(languages);
-
-  setCachedSupportedLanguages(formattedLanguages);
-
-  return formattedLanguages;
+  return getDeepLSupportedLanguages();
 }
 
 export async function initSupportedLanguages(): Promise<void> {

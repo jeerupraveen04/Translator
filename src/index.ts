@@ -7,6 +7,9 @@ import bulkTranslateRouter from "./routes/bulkTranslate";
 import geminiTranslateRouter from "./routes/geminiTranslate";
 import usageRouter from "./routes/usage";
 import { initSupportedLanguages } from "./processor/translationProcessor";
+import v1TranslationsRouter, { translationPlatformService } from "./routes/v1Translations";
+import { DailyRemediationScheduler } from "./jobs/remediationScheduler";
+import slackCommandsRouter from "./routes/slackCommands";
 
 dotenv.config();
 
@@ -23,12 +26,19 @@ app.use(azureTranslateRouter);
 app.use(bulkTranslateRouter);
 app.use(geminiTranslateRouter);
 app.use(usageRouter);
+app.use(v1TranslationsRouter);
+app.use(slackCommandsRouter);
 
-// initialize supported languages then start server
+const remediationScheduler = new DailyRemediationScheduler(translationPlatformService);
+
 initSupportedLanguages()
-  .catch((e) => console.error(e))
-  .finally(() => {
+  .then(() => {
+    remediationScheduler.start();
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });
+  })
+  .catch((error) => {
+    console.error("Application bootstrap failed:", error);
+    process.exit(1);
   });

@@ -7,5 +7,12 @@
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true
-  }
+  },
+  "exclude": [
+    "src/repository/platformRepository.ts",
+    "src/repository/platformFileTranslationRepository.ts",
+    "src/services/platformNotificationService.ts",
+    "src/services/platformProviderRouter.ts",
+    "src/services/platformTranslationService.ts"
+  ]
 }

@@ -35,6 +35,19 @@ AZURE_TRANSLATOR_REGION=your_azure_region
 GEMINI_API_KEY=your_gemini_api_key
 GEMINI_MODEL=gemini-2.5-flash
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/your/webhook/url
+SLACK_SIGNING_SECRET=your_slack_signing_secret
+SLACK_ALLOWED_USER_IDS=U12345,U67890
+SOURCE_LANGUAGE=en
+TRANSLATION_LANGUAGES={"en":"English","fr":"French","hi":"Hindi"}
+TRANSLATION_DB_FILE=./data/translation-platform.db
+TRANSLATION_DATA_FILE=./data/translation-platform-db.json
+TRANSLATION_BATCH_SIZE=25
+TRANSLATION_PROVIDER_TIMEOUT_MS=10000
+TRANSLATION_PROVIDER_RETRIES=2
+TRANSLATION_ALLOW_OVERWRITE_APPROVED=false
+TRANSLATION_PLATFORM_API_KEY=
+ENABLE_DAILY_REMEDIATION=false
+DAILY_REMEDIATION_TIME=02:00
 ```
 
 Notes:
@@ -44,6 +57,13 @@ Notes:
 - Azure variables are required only for Azure Translator endpoints.
 - Gemini variables are required only for the Gemini endpoint.
 - `SLACK_WEBHOOK_URL` enables start/missed/insert/completion/failure notifications for bulk jobs.
+- `SLACK_SIGNING_SECRET` enables verified Slack slash-command requests.
+- `SLACK_ALLOWED_USER_IDS` optionally limits mutating Slack commands such as backfill and remediation.
+- `TRANSLATION_LANGUAGES` defines the platform language registry used by the new `v1` routes.
+- `TRANSLATION_DB_FILE` is the SQLite database used by the translation platform.
+- `TRANSLATION_DATA_FILE` is now an optional legacy JSON import source for first-run migration into SQLite.
+- `TRANSLATION_PLATFORM_API_KEY` optionally protects the new `v1` platform routes through `x-translation-platform-key` or `Authorization: Bearer ...`.
+- `ENABLE_DAILY_REMEDIATION` and `DAILY_REMEDIATION_TIME` control the built-in daily repair scheduler.
 
 Configured target languages for the bulk route are defined in [languages.ts](/d:/PersonalProject/Translator/src/utils/languages.ts).
 
@@ -100,6 +120,97 @@ By default the server runs on `http://localhost:3000`.
 
 - `POST /translations/bulk`
   Translates an array of source strings into one or more target languages using retries and provider fallback.
+
+- `POST /v1/translations/translate-all`
+  Translates a source string map into every configured language, optionally persisting source and target rows.
+
+- `POST /v1/translations/backfill-language`
+  Reads persisted source strings and translates only the missing keys for a newly added language.
+
+- `GET /v1/translations/validate`
+  Compares every active language against the source language and returns missing/extra key details.
+
+- `GET /v1/translations/status/:languageCode`
+  Returns per-language status for Slack-style operational checks, including missing keys and provider stats.
+
+- `POST /v1/translations/remediate`
+  Runs manual remediation or a dry run against missing translations across active languages.
+
+**Translation Platform**
+
+The new platform layer follows the design spec with:
+
+- Azure -> AWS -> DeepL -> Gemini provider routing with retries and timeout handling.
+- SQLite-backed persistence for languages, translations, jobs, audit rows, and notification logs.
+- Translation validation, language backfill, and daily remediation support.
+- Agent wrappers in [platformAgents.ts](/d:/PersonalProject/Translator/src/jobs/platformAgents.ts) for write/test/verify/validate workflows.
+- A scheduler in [remediationScheduler.ts](/d:/PersonalProject/Translator/src/jobs/remediationScheduler.ts) that runs daily when enabled.
+- Slack slash-command support through `POST /slack/commands` for validate, status, backfill, and remediate actions.
+
+The runtime persistence database defaults to [translation-platform.db](/d:/PersonalProject/Translator/data/translation-platform.db).
+
+Translate all configured languages:
+
+```bash
+curl -X POST http://localhost:3000/v1/translations/translate-all \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source_language": "en",
+    "translation_languages": {
+      "en": "English",
+      "fr": "French",
+      "hi": "Hindi"
+    },
+    "strings": {
+      "home": "Home",
+      "logout": "Logout"
+    },
+    "persist": true
+  }'
+```
+
+Backfill a newly added language from persisted source strings:
+
+```bash
+curl -X POST http://localhost:3000/v1/translations/backfill-language \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source_language": "en",
+    "target_language": "fr",
+    "translation_languages": {
+      "en": "English",
+      "fr": "French",
+      "hi": "Hindi"
+    },
+    "persist": true
+  }'
+```
+
+Validate translation counts:
+
+```bash
+curl "http://localhost:3000/v1/translations/validate?source_language=en"
+```
+
+Run dry-run remediation:
+
+```bash
+curl -X POST http://localhost:3000/v1/translations/remediate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source_language": "en",
+    "dry_run": true
+  }'
+```
+
+Slack slash commands supported:
+
+```text
+/translate-validate
+/translate-status fr
+/translate-backfill fr
+/translate-remediate --dry-run fr hi
+```
 
 **Test DeepL**
 
